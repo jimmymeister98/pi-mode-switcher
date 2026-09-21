@@ -29,15 +29,16 @@ session.
 
 - `/mode` (no args) — opens a picker dialog (`ctx.ui.select`) with the three
   modes, current mode preselected/highlighted, plus a "reset to configured
-  default" entry (clears the override). Selecting applies
-  `settings.override()` and shows a notify toast.
+  default" entry (clears the override). Selecting applies the override and
+  shows a notify toast.
 - `/mode <always-ask|write|yolo|reset>` — direct switch, no dialog. Invalid
   arguments open the picker.
 
 ### Keyboard shortcut
 
-- `Alt+M` (`pi.registerShortcut`) opens the same picker dialog as bare `/mode`.
-  Alt+M is not in omp's reserved-shortcut list.
+- `Alt+Shift+M` (`pi.registerShortcut`) opens the same picker dialog as bare
+  `/mode`. Alt+M alone is reserved by omp (vibe-mode toggle); Alt+Shift+M is
+  unreserved and mirrors the documented `Alt+Shift+P` (plan toggle) pattern.
 
 ### Persistence
 

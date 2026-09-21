@@ -1,4 +1,4 @@
-# omp-approval-mode-switcher
+# pi-mode-switcher
 
 An [omp (Oh My Pi)](https://github.com/can1357/oh-my-pi) extension that switches
 the tool approval mode at runtime — no restart, no config edits.
@@ -33,10 +33,19 @@ restores the configured default.
 
 Requires omp 18.2.7+.
 
-    omp plugin install /path/to/omp-approval-mode-switcher
+Install permanently (user scope, enabled across all sessions):
 
-or for development:
+    omp plugin install https://github.com/jimmymeister98/pi-mode-switcher
 
-    omp plugin link /path/to/omp-approval-mode-switcher
+Or link for development — omp loads the entry directly from your working
+copy, so changes are picked up on the next session start:
 
-The `omp.extensions` manifest in `package.json` points at `src/index.ts`.
+    omp plugin link /path/to/pi-mode-switcher
+
+To try it out without installing anything:
+
+    omp -e /path/to/pi-mode-switcher/src/index.ts
+
+`omp plugin list` shows what's installed; `--scope=project` installs into
+the current project instead of user scope. The `omp.extensions` manifest in
+`package.json` points at `src/index.ts`.

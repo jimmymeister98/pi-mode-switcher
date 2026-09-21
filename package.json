@@ -1,5 +1,5 @@
 {
-	"name": "omp-approval-mode-switcher",
+	"name": "pi-mode-switcher",
 	"version": "0.1.0",
 	"description": "omp extension: switch tools.approvalMode (always-ask / write / yolo) at runtime",
 	"private": true,

@@ -41,3 +41,33 @@ export function applyMode(mode: ModeArg, settings: SettingsSurface): string {
 	}
 	return settings.get("tools.approvalMode");
 }
+
+/** Context/UI surface applySelected needs; structurally satisfied by ExtensionContext. */
+export interface ApplySelectedCtx {
+	ui: {
+		notify(message: string, type?: "info" | "warning" | "error"): void;
+		setStatus(key: string, text: string | undefined): void;
+	};
+	hasUI: boolean;
+}
+
+export const STATUS_KEY = "mode-switcher";
+
+/**
+ * Apply a picker/command selection: mutate settings, notify, update status.
+ * `undefined` or an unparseable selection (cancelled dialog) is a complete no-op.
+ */
+export function applySelected(
+	selected: string | undefined,
+	ctx: ApplySelectedCtx,
+	settings: SettingsSurface,
+): string | undefined {
+	const mode = parseModeArg(selected ?? "");
+	if (mode === undefined) return undefined;
+	const currentAfter = applyMode(mode, settings);
+	ctx.ui.notify(notifyText(mode, currentAfter));
+	if (ctx.hasUI) {
+		ctx.ui.setStatus(STATUS_KEY, formatStatus(currentAfter));
+	}
+	return currentAfter;
+}

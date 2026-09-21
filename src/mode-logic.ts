@@ -33,6 +33,18 @@ export function notifyText(mode: ModeArg, currentAfter: string): string {
 	return `Approval mode: ${mode}`;
 }
 
+/**
+ * True when a raw terminal-input chunk is exactly the bytes stock iTerm
+ * (Option key = Normal) sends for macOS Option+Shift+M: the printable char
+ * Ø (U+00D8, UTF-8 C3 98). Such terminals never emit an escape sequence for
+ * Option combos, so the alt+shift+m shortcut binding cannot fire; this
+ * watcher-level trigger is the compatibility path. Only a standalone chunk
+ * matches — anything longer is typing/paste and must pass through.
+ */
+export function isPickerTrigger(chunk: string): boolean {
+	return chunk === "\u00D8" || chunk === "\u00C3\u0098";
+}
+
 export function applyMode(mode: ModeArg, settings: SettingsSurface): string {
 	if (mode === "reset") {
 		settings.clearOverride("tools.approvalMode");

@@ -4,6 +4,7 @@ import {
 	applyMode,
 	type ApprovalMode,
 	formatStatus,
+	isPickerTrigger,
 	MODES,
 	notifyText,
 	parseModeArg,
@@ -71,4 +72,19 @@ test("applyMode reset clears an active override and is idempotent", () => {
 test("notifyText names the mode for switches, 'configured default' for reset", () => {
 	assert.equal(notifyText("yolo", "yolo"), "Approval mode: yolo");
 	assert.equal(notifyText("reset", "write"), "Approval mode: reset to configured default (write)");
+});
+
+test("isPickerTrigger matches the standalone macOS Option+Shift+M chunk", () => {
+	// Decoded UTF-8: iTerm (Option = Normal) turns Option+Shift+M into Ø (U+00D8)
+	assert.equal(isPickerTrigger("Ø"), true);
+	// Undecoded raw bytes (C3 98 mapped to code points) if input arrives latin1
+	assert.equal(isPickerTrigger("\u00C3\u0098"), true);
+	// Chars embedded in larger chunks (typing, paste) must pass through
+	assert.equal(isPickerTrigger("Ørest"), false);
+	assert.equal(isPickerTrigger("xØ"), false);
+	// Near misses
+	assert.equal(isPickerTrigger("ø"), false);
+	assert.equal(isPickerTrigger("M"), false);
+	assert.equal(isPickerTrigger("\u001bM"), false);
+	assert.equal(isPickerTrigger(""), false);
 });

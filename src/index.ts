@@ -3,6 +3,7 @@ import type { ExtensionAPI, ExtensionContext, Settings } from "@oh-my-pi/pi-codi
 import {
 	applySelected,
 	formatStatus,
+	isPickerTrigger,
 	MODES,
 	type ApprovalMode,
 	type ModeArg,
@@ -51,6 +52,31 @@ async function openPicker(ctx: ExtensionContext, settings: Settings): Promise<Mo
 	return parseModeArg(selected.replace(" (current)", ""));
 }
 
+/**
+ * Stock macOS terminals (iTerm with Option key = Normal) never send an escape
+ * sequence for Option+Shift+M — they send the printable char Ø (U+00D8), which
+ * the KeyId-based shortcut system cannot bind. This raw-input watcher catches
+ * exactly that standalone chunk, consumes it, and opens the picker instead.
+ * Terminals that do deliver real alt sequences still use the alt+shift+m
+ * binding; both paths coexist. Registered per session, interactive only.
+ */
+function registerMacOptionWatcher(ctx: ExtensionContext, settings: Settings): void {
+	let pickerOpen = false;
+	ctx.ui.onTerminalInput((data) => {
+		if (!isPickerTrigger(data) || pickerOpen) return undefined;
+		pickerOpen = true;
+		void (async () => {
+			try {
+				const selected = await openPicker(ctx, settings);
+				applySelected(selected, ctx, settings);
+			} finally {
+				pickerOpen = false;
+			}
+		})();
+		return { consume: true };
+	});
+}
+
 export default function approvalModeSwitcher(pi: ExtensionAPI): void {
 	pi.on("session_start", (_event, ctx) => {
 		// Inside a handler: findScopedSettings resolves the active session's
@@ -58,6 +84,7 @@ export default function approvalModeSwitcher(pi: ExtensionAPI): void {
 		const settings = SettingsManager.create(ctx.cwd);
 		if (ctx.hasUI) {
 			ctx.ui.setStatus(STATUS_KEY, formatStatus(settings.get("tools.approvalMode")));
+			registerMacOptionWatcher(ctx, settings);
 		}
 	});
 

@@ -13,7 +13,7 @@ the tool approval mode at runtime — no restart, no config edits.
 
 - `/mode` — opens a picker (current mode preselected)
 - `/mode <always-ask|write|yolo|reset>` — direct switch
-- `alt+shift+m` — opens the picker
+- `alt+shift+m` — opens the picker (currently broken under macos + iterm/terminal issue #2)
 
 ### macOS / iTerm note
 

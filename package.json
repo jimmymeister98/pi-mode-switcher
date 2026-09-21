@@ -1,0 +1,20 @@
+{
+	"name": "omp-approval-mode-switcher",
+	"version": "0.1.0",
+	"description": "omp extension: switch tools.approvalMode (always-ask / write / yolo) at runtime",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"scripts": {
+		"test": "node --test 'test/*.test.ts'",
+		"typecheck": "bun x tsc --noEmit"
+	},
+	"omp": {
+		"extensions": ["./src/index.ts"]
+	},
+	"devDependencies": {
+		"typescript": "^5.9.0",
+		"@types/node": "^24.0.0",
+		"@oh-my-pi/pi-coding-agent": "18.2.7"
+	}
+}

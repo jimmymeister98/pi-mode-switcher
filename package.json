@@ -6,7 +6,7 @@
 	"type": "module",
 	"main": "src/index.ts",
 	"scripts": {
-		"test": "node --test test/",
+		"test": "node --test 'test/*.test.ts'",
 		"typecheck": "bun x tsc --noEmit"
 	},
 	"omp": {

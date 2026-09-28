@@ -9,20 +9,16 @@ import {
 	notifyText,
 	parseModeArg,
 } from "../src/mode-logic.ts";
+import type { ApprovalSetting } from "../src/mode-logic.ts";
 
-/** Structural stand-in for the Settings surface applyMode touches. */
-interface FakeSettings {
-	get(path: "tools.approvalMode"): string;
-	override(path: "tools.approvalMode", value: string): void;
-	clearOverride(path: "tools.approvalMode"): void;
-}
-
-function makeFake(initial: string): FakeSettings {
+/** Structural stand-in for the registry handle; `scope` is opaque to it. */
+function makeFakeSetting(initial: string): ApprovalSetting & { current: string } {
 	let current = initial;
 	let hasOverride = false;
 	return {
+		current,
 		get: () => current,
-		override: (_path, value) => {
+		override: (_scope, value) => {
 			current = value;
 			hasOverride = true;
 		},
@@ -56,17 +52,17 @@ test("formatStatus prefixes the current mode and degrades on unknown values", ()
 });
 
 test("applyMode sets an override and returns the effective mode", () => {
-	const fake = makeFake("write");
-	assert.equal(applyMode("yolo", fake), "yolo");
-	assert.equal(fake.get("tools.approvalMode"), "yolo");
+	const fake = makeFakeSetting("write");
+	assert.equal(applyMode("yolo", fake, "scope"), "yolo");
+	assert.equal(fake.get("scope"), "yolo");
 });
 
 test("applyMode reset clears an active override and is idempotent", () => {
-	const fake = makeFake("write");
-	applyMode("always-ask", fake); // establish an override
-	assert.equal(applyMode("reset", fake), "write");
+	const fake = makeFakeSetting("write");
+	applyMode("always-ask", fake, "scope"); // establish an override
+	assert.equal(applyMode("reset", fake, "scope"), "write");
 	// reset with no active override: still fine, still reports the default
-	assert.equal(applyMode("reset", fake), "write");
+	assert.equal(applyMode("reset", fake, "scope"), "write");
 });
 
 test("notifyText names the mode for switches, 'configured default' for reset", () => {
@@ -78,7 +74,7 @@ test("isPickerTrigger matches the standalone macOS Option+Shift+M chunk", () => 
 	// Decoded UTF-8: iTerm (Option = Normal) turns Option+Shift+M into Ø (U+00D8)
 	assert.equal(isPickerTrigger("Ø"), true);
 	// Undecoded raw bytes (C3 98 mapped to code points) if input arrives latin1
-	assert.equal(isPickerTrigger("\u00C3\u0098"), true);
+	assert.equal(isPickerTrigger("Ã\u0098"), true);
 	// Chars embedded in larger chunks (typing, paste) must pass through
 	assert.equal(isPickerTrigger("Ørest"), false);
 	assert.equal(isPickerTrigger("xØ"), false);

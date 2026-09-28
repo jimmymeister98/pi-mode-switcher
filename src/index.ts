@@ -1,11 +1,12 @@
-import { SettingsManager } from "@oh-my-pi/pi-coding-agent";
-import type { ExtensionAPI, ExtensionContext, Settings } from "@oh-my-pi/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@oh-my-pi/pi-coding-agent";
+import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 import {
 	applySelected,
+	type ApprovalMode,
+	type ApprovalSetting,
 	formatStatus,
 	isPickerTrigger,
 	MODES,
-	type ApprovalMode,
 	type ModeArg,
 	parseModeArg,
 	STATUS_KEY,
@@ -13,6 +14,8 @@ import {
 
 const RESET_LABEL = "reset (configured default)";
 const PICKER_TITLE = "Approval mode";
+
+const approvalMode = lookup("tools.approvalMode") as ApprovalSetting | undefined;
 
 function descriptionFor(mode: ApprovalMode): string {
 	switch (mode) {
@@ -27,11 +30,11 @@ function descriptionFor(mode: ApprovalMode): string {
 
 /**
  * Open the mode picker; returns the selected ModeArg, or undefined on cancel.
- * `settings.get` may return a hand-edited non-mode value — `find` then misses
+ * `handle.get` may return a hand-edited non-mode value — `find` then misses
  * and the cursor lands on the first entry, which is the documented degradation.
  */
-async function openPicker(ctx: ExtensionContext, settings: Settings): Promise<ModeArg | undefined> {
-	const current = settings.get("tools.approvalMode");
+async function openPicker(ctx: ExtensionContext, setting: ApprovalSetting, scope: unknown): Promise<ModeArg | undefined> {
+	const current = setting.get(scope);
 	const options = [
 		...MODES.map((mode) => ({
 			label: mode === current ? `${mode} (current)` : mode,
@@ -60,15 +63,19 @@ async function openPicker(ctx: ExtensionContext, settings: Settings): Promise<Mo
  * Terminals that do deliver real alt sequences still use the alt+shift+m
  * binding; both paths coexist. Registered per session, interactive only.
  */
-function registerMacOptionWatcher(ctx: ExtensionContext, settings: Settings): void {
+function registerMacOptionWatcher(
+	ctx: ExtensionContext,
+	setting: ApprovalSetting,
+	scope: unknown,
+): void {
 	let pickerOpen = false;
 	ctx.ui.onTerminalInput((data) => {
 		if (!isPickerTrigger(data) || pickerOpen) return undefined;
 		pickerOpen = true;
 		void (async () => {
 			try {
-				const selected = await openPicker(ctx, settings);
-				applySelected(selected, ctx, settings);
+				const selected = await openPicker(ctx, setting, scope);
+				applySelected(selected, ctx, setting, scope);
 			} finally {
 				pickerOpen = false;
 			}
@@ -78,14 +85,12 @@ function registerMacOptionWatcher(ctx: ExtensionContext, settings: Settings): vo
 }
 
 export default function approvalModeSwitcher(pi: ExtensionAPI): void {
+	const scope = pi.pi.settings;
+
 	pi.on("session_start", (_event, ctx) => {
-		// Inside a handler: findScopedSettings resolves the active session's
-		// Settings instance via AsyncLocalStorage.
-		const settings = SettingsManager.create(ctx.cwd);
-		if (ctx.hasUI) {
-			ctx.ui.setStatus(STATUS_KEY, formatStatus(settings.get("tools.approvalMode")));
-			registerMacOptionWatcher(ctx, settings);
-		}
+		if (!approvalMode || !ctx.hasUI) return;
+		ctx.ui.setStatus(STATUS_KEY, formatStatus(approvalMode.get(scope)));
+		registerMacOptionWatcher(ctx, approvalMode, scope);
 	});
 
 	pi.registerCommand("mode", {
@@ -97,15 +102,21 @@ export default function approvalModeSwitcher(pi: ExtensionAPI): void {
 			return matches.map((arg) => ({ value: arg, label: arg }));
 		},
 		handler: async (args: string, ctx: ExtensionContext) => {
-			const settings = SettingsManager.create(ctx.cwd);
+			if (!approvalMode) {
+				ctx.ui.notify(
+					`This omp version does not register the tools.approvalMode setting; mode switching is unavailable.`,
+					"error",
+				);
+				return;
+			}
 			const explicit = parseModeArg(args);
 			if (explicit !== undefined) {
-				applySelected(explicit, ctx, settings);
+				applySelected(explicit, ctx, approvalMode, scope);
 				return;
 			}
 			if (ctx.hasUI) {
-				const selected = await openPicker(ctx, settings);
-				applySelected(selected, ctx, settings);
+				const selected = await openPicker(ctx, approvalMode, scope);
+				applySelected(selected, ctx, approvalMode, scope);
 				return;
 			}
 			ctx.ui.notify(
@@ -118,13 +129,16 @@ export default function approvalModeSwitcher(pi: ExtensionAPI): void {
 	pi.registerShortcut("alt+shift+m", {
 		description: "Switch approval mode",
 		handler: async (ctx: ExtensionContext) => {
-			const settings = SettingsManager.create(ctx.cwd);
+			if (!approvalMode) {
+				ctx.ui.notify("Mode picker is unavailable in this mode.", "warning");
+				return;
+			}
 			if (!ctx.hasUI) {
 				ctx.ui.notify("Mode picker is unavailable in this mode.", "warning");
 				return;
 			}
-			const selected = await openPicker(ctx, settings);
-			applySelected(selected, ctx, settings);
+			const selected = await openPicker(ctx, approvalMode, scope);
+			applySelected(selected, ctx, approvalMode, scope);
 		},
 	});
 }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { applySelected, STATUS_KEY } from "../src/mode-logic.ts";
+import { applySelected, STATUS_KEY, type ApprovalSetting } from "../src/mode-logic.ts";
 
 /** Structural stand-in for ExtensionContext's UI + hasUI surface. */
 interface FakeCtx {
@@ -9,12 +9,6 @@ interface FakeCtx {
 		setStatus(key: string, text: string | undefined): void;
 	};
 	hasUI: boolean;
-}
-
-interface FakeSettings {
-	get(path: "tools.approvalMode"): string;
-	override(path: "tools.approvalMode", value: string): void;
-	clearOverride(path: "tools.approvalMode"): void;
 }
 
 function makeFakeCtx(
@@ -33,12 +27,12 @@ function makeFakeCtx(
 	};
 }
 
-function makeFakeSettings(initial: string): FakeSettings {
+function makeFakeSetting(initial: string): ApprovalSetting {
 	let current = initial;
 	let hasOverride = false;
 	return {
 		get: () => current,
-		override: (_path, value) => {
+		override: (_scope, value) => {
 			current = value;
 			hasOverride = true;
 		},
@@ -51,29 +45,29 @@ function makeFakeSettings(initial: string): FakeSettings {
 
 test("applySelected applies a chosen mode, notifies, and updates status", () => {
 	const ctx = makeFakeCtx(true);
-	const settings = makeFakeSettings("write");
-	const result = applySelected("yolo", ctx, settings);
+	const setting = makeFakeSetting("write");
+	const result = applySelected("yolo", ctx, setting, "scope");
 	assert.equal(result, "yolo");
-	assert.equal(settings.get("tools.approvalMode"), "yolo");
+	assert.equal(setting.get("scope"), "yolo");
 	assert.deepEqual(ctx.notifications, ["Approval mode: yolo"]);
 	assert.equal(ctx.statuses.get(STATUS_KEY), "mode: yolo");
 });
 
 test("applySelected with undefined (cancelled picker) is a full no-op", () => {
 	const ctx = makeFakeCtx(true);
-	const settings = makeFakeSettings("write");
-	const result = applySelected(undefined, ctx, settings);
+	const setting = makeFakeSetting("write");
+	const result = applySelected(undefined, ctx, setting, "scope");
 	assert.equal(result, undefined);
-	assert.equal(settings.get("tools.approvalMode"), "write");
+	assert.equal(setting.get("scope"), "write");
 	assert.deepEqual(ctx.notifications, []);
 	assert.equal(ctx.statuses.has(STATUS_KEY), false);
 });
 
 test("applySelected reset notifies 'configured default' text", () => {
 	const ctx = makeFakeCtx(true);
-	const settings = makeFakeSettings("always-ask");
-	settings.override("tools.approvalMode", "always-ask");
-	const result = applySelected("reset", ctx, settings);
+	const setting = makeFakeSetting("always-ask");
+	setting.override("scope", "always-ask");
+	const result = applySelected("reset", ctx, setting, "scope");
 	assert.equal(result, "write");
 	assert.deepEqual(ctx.notifications, ["Approval mode: reset to configured default (write)"]);
 	assert.equal(ctx.statuses.get(STATUS_KEY), "mode: write");
@@ -81,8 +75,8 @@ test("applySelected reset notifies 'configured default' text", () => {
 
 test("applySelected skips the status bar when hasUI is false (headless)", () => {
 	const ctx = makeFakeCtx(false);
-	const settings = makeFakeSettings("write");
-	const result = applySelected("yolo", ctx, settings);
+	const setting = makeFakeSetting("write");
+	const result = applySelected("yolo", ctx, setting, "scope");
 	assert.equal(result, "yolo");
 	assert.deepEqual(ctx.notifications, ["Approval mode: yolo"]);
 	assert.equal(ctx.statuses.has(STATUS_KEY), false);

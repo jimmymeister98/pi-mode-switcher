@@ -2,15 +2,18 @@ export type ApprovalMode = "always-ask" | "write" | "yolo";
 export type ModeArg = ApprovalMode | "reset";
 
 /**
- * The subset of Settings that mode switching touches, specialized to the
- * `tools.approvalMode` path. Declared as an interface (not `Pick<Settings>`)
- * so structural stand-ins match: the real `Settings.override` is generic
- * over all setting paths and a path-specialized fake is not assignable to it.
+ * The setting surface mode switching touches, specialized to the
+ * `tools.approvalMode` registry handle. omp 18.3 removed the string-path
+ * `settings.get/override/clearOverride` methods; settings are addressed
+ * through typed registry handles (`lookup("tools.approvalMode")` from
+ * `@oh-my-pi/pi-coding-agent/config/registry`) applied to a settings scope
+ * (`pi.pi.settings`). Declared as an interface so structural stand-ins
+ * match in tests.
  */
-export interface SettingsSurface {
-	get(path: "tools.approvalMode"): string;
-	override(path: "tools.approvalMode", value: ApprovalMode): void;
-	clearOverride(path: "tools.approvalMode"): void;
+export interface ApprovalSetting {
+	get(scope: unknown): string;
+	override(scope: unknown, value: ApprovalMode): void;
+	clearOverride(scope: unknown): void;
 }
 
 export const MODES: readonly ApprovalMode[] = ["always-ask", "write", "yolo"];
@@ -45,13 +48,13 @@ export function isPickerTrigger(chunk: string): boolean {
 	return chunk === "\u00D8" || chunk === "\u00C3\u0098";
 }
 
-export function applyMode(mode: ModeArg, settings: SettingsSurface): string {
+export function applyMode(mode: ModeArg, setting: ApprovalSetting, scope: unknown): string {
 	if (mode === "reset") {
-		settings.clearOverride("tools.approvalMode");
+		setting.clearOverride(scope);
 	} else {
-		settings.override("tools.approvalMode", mode);
+		setting.override(scope, mode);
 	}
-	return settings.get("tools.approvalMode");
+	return setting.get(scope);
 }
 
 /** Context/UI surface applySelected needs; structurally satisfied by ExtensionContext. */
@@ -72,11 +75,12 @@ export const STATUS_KEY = "mode-switcher";
 export function applySelected(
 	selected: string | undefined,
 	ctx: ApplySelectedCtx,
-	settings: SettingsSurface,
+	setting: ApprovalSetting,
+	scope: unknown,
 ): string | undefined {
 	const mode = parseModeArg(selected ?? "");
 	if (mode === undefined) return undefined;
-	const currentAfter = applyMode(mode, settings);
+	const currentAfter = applyMode(mode, setting, scope);
 	ctx.ui.notify(notifyText(mode, currentAfter));
 	if (ctx.hasUI) {
 		ctx.ui.setStatus(STATUS_KEY, formatStatus(currentAfter));

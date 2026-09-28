@@ -25,13 +25,16 @@ part of normal text or a paste passes through untouched. On terminals that do
 send real alt escape sequences, the native `alt+shift+m` keybinding handles it
 instead. Both paths are active simultaneously.
 
-Switches are session-scoped: they apply a runtime settings override that dies
-with the session. Your `~/.omp/agent/config.yml` is never modified. `reset`
-restores the configured default.
+Switches are session-scoped: they apply a runtime settings override through the
+typed settings registry (`lookup("tools.approvalMode")` from
+`@oh-my-pi/pi-coding-agent/config/registry` — omp removed the string-path
+`settings.override` API in 18.3) that dies with the session. Your
+`~/.omp/agent/config.yml` is never modified. `reset` restores the configured
+default.
 
 ## Install
 
-Requires omp 18.2.7+.
+Requires omp 18.3+ (settings registry API); tested with 18.4.2.
 
 Install permanently (user scope, enabled across all sessions):
 

@@ -43,14 +43,14 @@ function makeFakeSetting(initial: string): ApprovalSetting {
 	};
 }
 
-test("applySelected applies a chosen mode, notifies, and updates status", () => {
+test("applySelected applies a chosen mode, notifies with emoji, and updates status", () => {
 	const ctx = makeFakeCtx(true);
 	const setting = makeFakeSetting("write");
 	const result = applySelected("yolo", ctx, setting, "scope");
 	assert.equal(result, "yolo");
 	assert.equal(setting.get("scope"), "yolo");
-	assert.deepEqual(ctx.notifications, ["Approval mode: yolo"]);
-	assert.equal(ctx.statuses.get(STATUS_KEY), "mode: yolo");
+	assert.deepEqual(ctx.notifications, ["Approval mode: 🤙 yolo"]);
+	assert.equal(ctx.statuses.get(STATUS_KEY), "mode: 🤙 yolo");
 });
 
 test("applySelected with undefined (cancelled picker) is a full no-op", () => {
@@ -70,7 +70,7 @@ test("applySelected reset notifies 'configured default' text", () => {
 	const result = applySelected("reset", ctx, setting, "scope");
 	assert.equal(result, "write");
 	assert.deepEqual(ctx.notifications, ["Approval mode: reset to configured default (write)"]);
-	assert.equal(ctx.statuses.get(STATUS_KEY), "mode: write");
+	assert.equal(ctx.statuses.get(STATUS_KEY), "mode: 🤔 write");
 });
 
 test("applySelected skips the status bar when hasUI is false (headless)", () => {
@@ -78,6 +78,6 @@ test("applySelected skips the status bar when hasUI is false (headless)", () => 
 	const setting = makeFakeSetting("write");
 	const result = applySelected("yolo", ctx, setting, "scope");
 	assert.equal(result, "yolo");
-	assert.deepEqual(ctx.notifications, ["Approval mode: yolo"]);
+	assert.deepEqual(ctx.notifications, ["Approval mode: 🤙 yolo"]);
 	assert.equal(ctx.statuses.has(STATUS_KEY), false);
 });

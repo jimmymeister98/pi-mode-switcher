@@ -6,6 +6,7 @@ import {
 	type ApprovalSetting,
 	formatStatus,
 	isPickerTrigger,
+	MODE_EMOJI,
 	MODES,
 	type ModeArg,
 	parseModeArg,
@@ -37,7 +38,7 @@ async function openPicker(ctx: ExtensionContext, setting: ApprovalSetting, scope
 	const current = setting.get(scope);
 	const options = [
 		...MODES.map((mode) => ({
-			label: mode === current ? `${mode} (current)` : mode,
+			label: mode === current ? `${MODE_EMOJI[mode]} ${mode} (current)` : `${MODE_EMOJI[mode]} ${mode}`,
 			description: descriptionFor(mode),
 		})),
 		{
@@ -52,7 +53,12 @@ async function openPicker(ctx: ExtensionContext, setting: ApprovalSetting, scope
 	if (selected === undefined || selected === RESET_LABEL) {
 		return selected === undefined ? undefined : "reset";
 	}
-	return parseModeArg(selected.replace(" (current)", ""));
+	// Selected labels carry an emoji prefix and possibly " (current)"; strip
+	// both before parsing the mode argument.
+	const stripped = selected
+		.replace(/ \(\w+\)$/, "")
+		.replace(new RegExp(`^(${Object.values(MODE_EMOJI).join("|")}) `), "");
+	return parseModeArg(stripped);
 }
 
 /**

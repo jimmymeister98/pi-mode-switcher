@@ -17,6 +17,12 @@ export interface ApprovalSetting {
 }
 
 export const MODES: readonly ApprovalMode[] = ["always-ask", "write", "yolo"];
+/** Emoji shown beside each mode in the picker, notifications, and status line. */
+export const MODE_EMOJI: Record<ApprovalMode, string> = {
+	"always-ask": "✋",
+	"write": "🤔",
+	"yolo": "🤙",
+};
 
 const MODE_ARGS: readonly ModeArg[] = [...MODES, "reset"];
 
@@ -26,14 +32,14 @@ export function parseModeArg(raw: string): ModeArg | undefined {
 }
 
 export function formatStatus(current: string): string {
-	return `mode: ${current}`;
+	const emoji = current in MODE_EMOJI ? MODE_EMOJI[current as ApprovalMode] : undefined;
+	return `mode: ${emoji ? `${emoji} ` : ""}${current}`;
 }
-
 export function notifyText(mode: ModeArg, currentAfter: string): string {
 	if (mode === "reset") {
 		return `Approval mode: reset to configured default (${currentAfter})`;
 	}
-	return `Approval mode: ${mode}`;
+	return `Approval mode: ${MODE_EMOJI[mode]} ${mode}`;
 }
 
 /**

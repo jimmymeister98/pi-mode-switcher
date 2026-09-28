@@ -6,6 +6,7 @@ import {
 	formatStatus,
 	isPickerTrigger,
 	MODES,
+	MODE_EMOJI,
 	notifyText,
 	parseModeArg,
 } from "../src/mode-logic.ts";
@@ -46,8 +47,15 @@ test("MODES lists the three modes in display order", () => {
 	assert.deepEqual<readonly ApprovalMode[]>(MODES, ["always-ask", "write", "yolo"]);
 });
 
-test("formatStatus prefixes the current mode and degrades on unknown values", () => {
-	assert.equal(formatStatus("write"), "mode: write");
+test("MODE_EMOJI maps each mode to its display emoji", () => {
+	assert.equal(MODE_EMOJI["always-ask"], "✋");
+	assert.equal(MODE_EMOJI["write"], "🤔");
+	assert.equal(MODE_EMOJI["yolo"], "🤙");
+});
+
+test("formatStatus prefixes the current mode with its emoji", () => {
+	assert.equal(formatStatus("write"), "mode: 🤔 write");
+	assert.equal(formatStatus("yolo"), "mode: 🤙 yolo");
 	assert.equal(formatStatus("weird-value"), "mode: weird-value");
 });
 
@@ -65,8 +73,8 @@ test("applyMode reset clears an active override and is idempotent", () => {
 	assert.equal(applyMode("reset", fake, "scope"), "write");
 });
 
-test("notifyText names the mode for switches, 'configured default' for reset", () => {
-	assert.equal(notifyText("yolo", "yolo"), "Approval mode: yolo");
+test("notifyText names the mode with emoji, 'configured default' for reset", () => {
+	assert.equal(notifyText("yolo", "yolo"), "Approval mode: 🤙 yolo");
 	assert.equal(notifyText("reset", "write"), "Approval mode: reset to configured default (write)");
 });
 
